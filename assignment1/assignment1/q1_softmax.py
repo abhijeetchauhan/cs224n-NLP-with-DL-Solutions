@@ -32,7 +32,7 @@ def softmax(x):
         # Matrix
         ### YOUR CODE HERE
 	x = (x.T-x.max(axis=1)).T
-	print x
+	# print x
 	denom = (np.exp(x)).sum(axis=1)
 	x = (np.exp(x).T/denom).T
         # raise NotImplementedError
@@ -41,7 +41,7 @@ def softmax(x):
         # Vector
         ### YOUR CODE HERE
 	x = x - max(x);
-	print x
+	# print x
 	x = np.exp(x)/np.sum(np.exp(x));
         # raise NotImplementedError
         ### END YOUR CODE

@@ -32,13 +32,14 @@ def gradcheck_naive(f, x):
 		### YOUR CODE HERE:
 	
 		old = x[ix]
-		random.setstate(rndstate)
 		x[ix] = old - h
-		leftcost, _ = f(x) # f(x[ix]) is wrong
 		random.setstate(rndstate)
+		leftcost, _ = f(x) # f(x[ix]) is wrong
 		x[ix] = old + h
+		random.setstate(rndstate)
 		rightcost, _ = f(x)
 		numgrad = (rightcost - leftcost)/(2*h)
+		x[ix] = old
 		#         temp_x = x.astype('float64')
 		# temp_x[ix] += h
 		# random.setstate(rndstate)

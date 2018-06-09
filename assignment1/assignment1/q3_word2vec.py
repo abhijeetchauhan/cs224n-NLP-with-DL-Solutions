@@ -14,8 +14,11 @@ def normalizeRows(x):
     unit length.
     """
 
-    ### YOUR CODE HERE
-    raise NotImplementedError
+    ### YsbOUR CODE HERE
+    # print np.sqrt(np.sum(np.multiply(x,x),axis=1))
+    div = np.sqrt(np.sum(np.multiply(x,x),axis=1))[np.newaxis]
+    x = np.divide(x,div.T);
+    #raise NotImplementedError
     ### END YOUR CODE
 
     return x
@@ -27,7 +30,7 @@ def test_normalize_rows():
     print x
     ans = np.array([[0.6,0.8],[0.4472136,0.89442719]])
     assert np.allclose(x, ans, rtol=1e-05, atol=1e-06)
-    print ""
+    print "Normalize rows correct"
 
 
 def softmaxCostAndGradient(predicted, target, outputVectors, dataset):
@@ -58,9 +61,23 @@ def softmaxCostAndGradient(predicted, target, outputVectors, dataset):
     """
 
     ### YOUR CODE HERE
-    raise NotImplementedError
-    ### END YOUR CODE
+    # print "softmax start"
+    # print predicted
+    # print softmax(predicted)
+    # print "softmax"
 
+    centerVector = predicted
+    predicted = np.dot(outputVectors,centerVector.T)
+    predicted = softmax(predicted)
+    cost = -1*np.sum(np.multiply(np.eye(len(predicted))[target],np.log(predicted)))
+    ce = predicted-np.eye(predicted.size)[target] # cross entropy with softmax. gradient of CE wrt predicted.
+    gradPred = np.dot(outputVectors.T,ce) # WTF is outputVectors ???? MF
+    grad =  np.dot(centerVector[np.newaxis].T,ce[np.newaxis]).T
+    #print grad.shape
+
+    # raise NotImplementedError
+    ### END YOUR CODE
+    # print gradPred.shape
     return cost, gradPred, grad
 
 
@@ -94,10 +111,23 @@ def negSamplingCostAndGradient(predicted, target, outputVectors, dataset,
     # wish to match the autograder and receive points!
     indices = [target]
     indices.extend(getNegativeSamples(target, dataset, K))
+    cost = 0.0
+    u0 = outputVectors[target]
+    sample = outputVectors[indices]
+    s = sigmoid(-sample.dot(predicted))[None].T
+    s0 = sigmoid(u0.dot(predicted))
 
-    ### YOUR CODE HERE
-    raise NotImplementedError
+    cost = -np.log(s0) - np.sum(np.log(s))
+
+    gradPred = (s0 - 1.)*u0 - np.sum((s - 1.)*sample, axis=0)
+
+    grad = np.zeros(outputVectors.shape)
+    np.add.at(grad, indices, -(s - 1.)*np.tile(predicted, (K+1, 1)))
+    grad[target] += (s0 - 1)*predicted
+
     ### END YOUR CODE
+    assert gradPred.shape == predicted.shape
+    assert grad.shape == outputVectors.shape
 
     return cost, gradPred, grad
 
@@ -128,10 +158,31 @@ def skipgram(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
 
     cost = 0.0
     gradIn = np.zeros(inputVectors.shape)
+    # print gradIn.shape
     gradOut = np.zeros(outputVectors.shape)
-
+    # print gradOut.shape
     ### YOUR CODE HERE
-    raise NotImplementedError
+
+    # print "skipgram called"
+    # print currentWord
+    # print C
+    # print contextWords
+    # print tokens
+    # print inputVectors
+    # print outputVectors
+
+    centerVector = inputVectors[tokens[currentWord]]
+
+    for contextWord in contextWords:
+        vecCost,vecGradPred, vecGrad = word2vecCostAndGradient(centerVector,tokens[contextWord],outputVectors,dataset)
+        cost = cost + vecCost
+        gradIn[tokens[currentWord]] = gradIn[tokens[currentWord]] + vecGradPred
+        gradOut = gradOut + vecGrad
+    # print "Cost is"
+    # print cost
+    # exit()
+    # cost = word2vecCostAndGradient(predicted, target, outputVectors, dataset)
+    # raise NotImplementedError
     ### END YOUR CODE
 
     return cost, gradIn, gradOut
@@ -155,7 +206,7 @@ def cbow(currentWord, C, contextWords, tokens, inputVectors, outputVectors,
     gradOut = np.zeros(outputVectors.shape)
 
     ### YOUR CODE HERE
-    raise NotImplementedError
+    #raise NotImplementedError
     ### END YOUR CODE
 
     return cost, gradIn, gradOut
@@ -170,9 +221,14 @@ def word2vec_sgd_wrapper(word2vecModel, tokens, wordVectors, dataset, C,
     batchsize = 50
     cost = 0.0
     grad = np.zeros(wordVectors.shape)
+    # print "here"
+    # print grad
     N = wordVectors.shape[0]
+    # print N
     inputVectors = wordVectors[:N/2,:]
+    # print inputVectors
     outputVectors = wordVectors[N/2:,:]
+    # print outputVectors
     for i in xrange(batchsize):
         C1 = random.randint(1,C)
         centerword, context = dataset.getRandomContext(C1)
@@ -188,7 +244,6 @@ def word2vec_sgd_wrapper(word2vecModel, tokens, wordVectors, dataset, C,
         cost += c / batchsize / denom
         grad[:N/2, :] += gin / batchsize / denom
         grad[N/2:, :] += gout / batchsize / denom
-
     return cost, grad
 
 
@@ -216,6 +271,7 @@ def test_word2vec():
     gradcheck_naive(lambda vec: word2vec_sgd_wrapper(
         skipgram, dummy_tokens, vec, dataset, 5, negSamplingCostAndGradient),
         dummy_vectors)
+    exit()
     print "\n==== Gradient check for CBOW      ===="
     gradcheck_naive(lambda vec: word2vec_sgd_wrapper(
         cbow, dummy_tokens, vec, dataset, 5, softmaxCostAndGradient),

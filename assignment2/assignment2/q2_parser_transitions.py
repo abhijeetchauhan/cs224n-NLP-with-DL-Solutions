@@ -1,3 +1,4 @@
+# import copy
 class PartialParse(object):
     def __init__(self, sentence):
         """Initializes this partial parse.
@@ -21,6 +22,9 @@ class PartialParse(object):
         self.sentence = sentence
 
         ### YOUR CODE HERE
+        self.stack = ["ROOT"]
+        self.buffer = [word for word in sentence]
+        self.dependencies = []
         ### END YOUR CODE
 
     def parse_step(self, transition):
@@ -31,6 +35,15 @@ class PartialParse(object):
                         and right-arc transitions.
         """
         ### YOUR CODE HERE
+        if(transition == "S"):
+            self.stack = self.stack + self.buffer[:1]
+            self.buffer = self.buffer[1:]
+        elif(transition == "RA"):
+            self.dependencies = self.dependencies + [(self.stack[-2],self.stack[-1])]
+            self.stack = self.stack[:-1]
+        elif(transition == "LA"):
+            self.dependencies = self.dependencies + [(self.stack[-1],self.stack[-2])]
+            self.stack = self.stack[:-2] + self.stack[-1:]        
         ### END YOUR CODE
 
     def parse(self, transitions):
@@ -65,8 +78,37 @@ def minibatch_parse(sentences, model, batch_size):
     """
 
     ### YOUR CODE HERE
-    ### END YOUR CODE
+    partial_parses = [PartialParse(sentence) for sentence in sentences]
+    unfinished_parses = (partial_parses)
+    unfinished_parses = unfinished_parses
+    dependencies = [[] for i in range(len(sentences))]
+    while len(unfinished_parses):
+        transitions = model.predict(unfinished_parses[:batch_size])
+        for i,unfinished_parse in enumerate(unfinished_parses[:batch_size]):
+            # print "Checking " + str(i)
+            # print unfinished_parse.stack
+            # print unfinished_parse.buffer
+            # print unfinished_parse.dependencies
+            # print transitions[i]
+            dependency = unfinished_parse.parse([transitions[i]])
+            # print unfinished_parse.stack
+            # print unfinished_parse.buffer
+            # print unfinished_parse.dependencies
+            if(len(unfinished_parse.stack) == 1 and unfinished_parse.buffer == []):
+                # print "=======================Parsing finished================="
+                dependencies[sentences.index(unfinished_parse.sentence)] = unfinished_parse.dependencies
+                # print len(unfinished_parses)
+                # print unfinished_parse.sentence
+                # print sentences.index(unfinished_parse.sentence)
+                unfinished_parses.remove(unfinished_parse)
+                # print len(unfinished_parses)
+                if(len(unfinished_parses)==0): 
+                    break
 
+        # dependency = [unfinished_parses[i].parse(transitions[i]) for i in range(len(unfinished_parses))]## doubtful
+    ### END YOUR CODE
+    # print "Result"
+    # print dependencies
     return dependencies
 
 
@@ -119,6 +161,8 @@ class DummyModel:
     First shifts everything onto the stack and then does exclusively right arcs if the first word of
     the sentence is "right", "left" if otherwise.
     """
+    # import pdb
+    # pdb.set_trace()
     def predict(self, partial_parses):
         return [("RA" if pp.stack[1] is "right" else "LA") if len(pp.buffer) == 0 else "S"
                 for pp in partial_parses]

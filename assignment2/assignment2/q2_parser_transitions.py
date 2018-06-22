@@ -1,4 +1,4 @@
-# import copy
+import copy
 class PartialParse(object):
     def __init__(self, sentence):
         """Initializes this partial parse.
@@ -39,11 +39,15 @@ class PartialParse(object):
             self.stack = self.stack + self.buffer[:1]
             self.buffer = self.buffer[1:]
         elif(transition == "RA"):
-            self.dependencies = self.dependencies + [(self.stack[-2],self.stack[-1])]
-            self.stack = self.stack[:-1]
+            a = self.stack[-1]
+            b = self.stack[-2]
+            self.dependencies = self.dependencies + [(b,a)]
+            self.stack.pop(len(self.stack)-1)
         elif(transition == "LA"):
-            self.dependencies = self.dependencies + [(self.stack[-1],self.stack[-2])]
-            self.stack = self.stack[:-2] + self.stack[-1:]        
+            a = self.stack[-1]
+            b = self.stack[-2]
+            self.dependencies = self.dependencies + [(a,b)]
+            self.stack.pop(len(self.stack)-2)      
         ### END YOUR CODE
 
     def parse(self, transitions):
@@ -79,12 +83,13 @@ def minibatch_parse(sentences, model, batch_size):
 
     ### YOUR CODE HERE
     partial_parses = [PartialParse(sentence) for sentence in sentences]
-    unfinished_parses = (partial_parses)
-    unfinished_parses = unfinished_parses
-    dependencies = [[] for i in range(len(sentences))]
-    while len(unfinished_parses):
-        transitions = model.predict(unfinished_parses[:batch_size])
-        for i,unfinished_parse in enumerate(unfinished_parses[:batch_size]):
+    unfinished_parses = copy.copy(partial_parses)
+    # import pdb
+    # pdb.set_trace()
+    while unfinished_parses:
+        minibatch = unfinished_parses[:batch_size]
+        transitions = model.predict(minibatch)
+        for i,unfinished_parse in enumerate(minibatch):
             # print "Checking " + str(i)
             # print unfinished_parse.stack
             # print unfinished_parse.buffer
@@ -96,19 +101,12 @@ def minibatch_parse(sentences, model, batch_size):
             # print unfinished_parse.dependencies
             if(len(unfinished_parse.stack) == 1 and unfinished_parse.buffer == []):
                 # print "=======================Parsing finished================="
-                dependencies[sentences.index(unfinished_parse.sentence)] = unfinished_parse.dependencies
-                # print len(unfinished_parses)
-                # print unfinished_parse.sentence
-                # print sentences.index(unfinished_parse.sentence)
                 unfinished_parses.remove(unfinished_parse)
-                # print len(unfinished_parses)
                 if(len(unfinished_parses)==0): 
                     break
 
-        # dependency = [unfinished_parses[i].parse(transitions[i]) for i in range(len(unfinished_parses))]## doubtful
     ### END YOUR CODE
-    # print "Result"
-    # print dependencies
+    dependencies = [partial_parse.dependencies for partial_parse in partial_parses]
     return dependencies
 
 
